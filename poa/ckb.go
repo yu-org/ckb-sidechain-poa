@@ -1462,20 +1462,17 @@ func (s *Hash) AsBuilder() HashBuilder {
 }
 
 type EvidenceBuilder struct {
-	height              Uint64
-	block_hash          Hash
-	txn_root            Hash
-	state_root          Hash
-	signatures          Signatures
-	increate_validators ValidatorsChange
-	decreate_validators ValidatorsChange
+	height     Uint64
+	block_hash Hash
+	txn_root   Hash
+	state_root Hash
 }
 
 func (s *EvidenceBuilder) Build() Evidence {
 	b := new(bytes.Buffer)
 
-	totalSize := HeaderSizeUint * (7 + 1)
-	offsets := make([]uint32, 0, 7)
+	totalSize := HeaderSizeUint * (4 + 1)
+	offsets := make([]uint32, 0, 4)
 
 	offsets = append(offsets, totalSize)
 	totalSize += uint32(len(s.height.AsSlice()))
@@ -1485,12 +1482,6 @@ func (s *EvidenceBuilder) Build() Evidence {
 	totalSize += uint32(len(s.txn_root.AsSlice()))
 	offsets = append(offsets, totalSize)
 	totalSize += uint32(len(s.state_root.AsSlice()))
-	offsets = append(offsets, totalSize)
-	totalSize += uint32(len(s.signatures.AsSlice()))
-	offsets = append(offsets, totalSize)
-	totalSize += uint32(len(s.increate_validators.AsSlice()))
-	offsets = append(offsets, totalSize)
-	totalSize += uint32(len(s.decreate_validators.AsSlice()))
 
 	b.Write(packNumber(Number(totalSize)))
 
@@ -1502,9 +1493,6 @@ func (s *EvidenceBuilder) Build() Evidence {
 	b.Write(s.block_hash.AsSlice())
 	b.Write(s.txn_root.AsSlice())
 	b.Write(s.state_root.AsSlice())
-	b.Write(s.signatures.AsSlice())
-	b.Write(s.increate_validators.AsSlice())
-	b.Write(s.decreate_validators.AsSlice())
 	return Evidence{inner: b.Bytes()}
 }
 
@@ -1528,23 +1516,8 @@ func (s *EvidenceBuilder) StateRoot(v Hash) *EvidenceBuilder {
 	return s
 }
 
-func (s *EvidenceBuilder) Signatures(v Signatures) *EvidenceBuilder {
-	s.signatures = v
-	return s
-}
-
-func (s *EvidenceBuilder) IncreateValidators(v ValidatorsChange) *EvidenceBuilder {
-	s.increate_validators = v
-	return s
-}
-
-func (s *EvidenceBuilder) DecreateValidators(v ValidatorsChange) *EvidenceBuilder {
-	s.decreate_validators = v
-	return s
-}
-
 func NewEvidenceBuilder() *EvidenceBuilder {
-	return &EvidenceBuilder{height: Uint64Default(), block_hash: HashDefault(), txn_root: HashDefault(), state_root: HashDefault(), signatures: SignaturesDefault(), increate_validators: ValidatorsChangeDefault(), decreate_validators: ValidatorsChangeDefault()}
+	return &EvidenceBuilder{height: Uint64Default(), block_hash: HashDefault(), txn_root: HashDefault(), state_root: HashDefault()}
 }
 
 type Evidence struct {
@@ -1559,7 +1532,7 @@ func (s *Evidence) AsSlice() []byte {
 }
 
 func EvidenceDefault() Evidence {
-	return *EvidenceFromSliceUnchecked([]byte{140, 0, 0, 0, 32, 0, 0, 0, 40, 0, 0, 0, 72, 0, 0, 0, 104, 0, 0, 0, 136, 0, 0, 0, 140, 0, 0, 0, 140, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0})
+	return *EvidenceFromSliceUnchecked([]byte{124, 0, 0, 0, 20, 0, 0, 0, 28, 0, 0, 0, 60, 0, 0, 0, 92, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 }
 
 func EvidenceFromSlice(slice []byte, compatible bool) (*Evidence, error) {
@@ -1575,7 +1548,7 @@ func EvidenceFromSlice(slice []byte, compatible bool) (*Evidence, error) {
 		return nil, errors.New(errMsg)
 	}
 
-	if uint32(sliceLen) == HeaderSizeUint && 7 == 0 {
+	if uint32(sliceLen) == HeaderSizeUint && 4 == 0 {
 		return &Evidence{inner: slice}, nil
 	}
 
@@ -1596,9 +1569,9 @@ func EvidenceFromSlice(slice []byte, compatible bool) (*Evidence, error) {
 	}
 
 	fieldCount := uint32(offsetFirst)/HeaderSizeUint - 1
-	if fieldCount < 7 {
+	if fieldCount < 4 {
 		return nil, errors.New("FieldCountNotMatch")
-	} else if !compatible && fieldCount > 7 {
+	} else if !compatible && fieldCount > 4 {
 		return nil, errors.New("FieldCountNotMatch")
 	}
 
@@ -1637,21 +1610,6 @@ func EvidenceFromSlice(slice []byte, compatible bool) (*Evidence, error) {
 		return nil, err
 	}
 
-	_, err = SignaturesFromSlice(slice[offsets[4]:offsets[5]], compatible)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ValidatorsChangeFromSlice(slice[offsets[5]:offsets[6]], compatible)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = ValidatorsChangeFromSlice(slice[offsets[6]:offsets[7]], compatible)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Evidence{inner: slice}, nil
 }
 
@@ -1673,11 +1631,11 @@ func (s *Evidence) IsEmpty() bool {
 	return s.Len() == 0
 }
 func (s *Evidence) CountExtraFields() uint {
-	return s.FieldCount() - 7
+	return s.FieldCount() - 4
 }
 
 func (s *Evidence) HasExtraFields() bool {
-	return 7 != s.FieldCount()
+	return 4 != s.FieldCount()
 }
 
 func (s *Evidence) Height() *Uint64 {
@@ -1699,37 +1657,19 @@ func (s *Evidence) TxnRoot() *Hash {
 }
 
 func (s *Evidence) StateRoot() *Hash {
+	var ret *Hash
 	start := unpackNumber(s.inner[16:])
-	end := unpackNumber(s.inner[20:])
-	return HashFromSliceUnchecked(s.inner[start:end])
-}
-
-func (s *Evidence) Signatures() *Signatures {
-	start := unpackNumber(s.inner[20:])
-	end := unpackNumber(s.inner[24:])
-	return SignaturesFromSliceUnchecked(s.inner[start:end])
-}
-
-func (s *Evidence) IncreateValidators() *ValidatorsChange {
-	start := unpackNumber(s.inner[24:])
-	end := unpackNumber(s.inner[28:])
-	return ValidatorsChangeFromSliceUnchecked(s.inner[start:end])
-}
-
-func (s *Evidence) DecreateValidators() *ValidatorsChange {
-	var ret *ValidatorsChange
-	start := unpackNumber(s.inner[28:])
 	if s.HasExtraFields() {
-		end := unpackNumber(s.inner[32:])
-		ret = ValidatorsChangeFromSliceUnchecked(s.inner[start:end])
+		end := unpackNumber(s.inner[20:])
+		ret = HashFromSliceUnchecked(s.inner[start:end])
 	} else {
-		ret = ValidatorsChangeFromSliceUnchecked(s.inner[start:])
+		ret = HashFromSliceUnchecked(s.inner[start:])
 	}
 	return ret
 }
 
 func (s *Evidence) AsBuilder() EvidenceBuilder {
-	ret := NewEvidenceBuilder().Height(*s.Height()).BlockHash(*s.BlockHash()).TxnRoot(*s.TxnRoot()).StateRoot(*s.StateRoot()).Signatures(*s.Signatures()).IncreateValidators(*s.IncreateValidators()).DecreateValidators(*s.DecreateValidators())
+	ret := NewEvidenceBuilder().Height(*s.Height()).BlockHash(*s.BlockHash()).TxnRoot(*s.TxnRoot()).StateRoot(*s.StateRoot())
 	return *ret
 }
 

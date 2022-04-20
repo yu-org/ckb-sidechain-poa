@@ -1,8 +1,9 @@
 package main
 
 import (
-	"ckb-sidechain-poa/poa"
+	sidechain "ckb-sidechain-poa/poa"
 	"encoding/binary"
+	"github.com/yu-org/yu/apps/poa"
 	"github.com/yu-org/yu/common"
 	"github.com/yu-org/yu/core/tripod"
 	"github.com/yu-org/yu/core/types"
@@ -35,11 +36,7 @@ func (s *Sidechain) VerifyBlock(block *types.CompactBlock) bool {
 }
 
 func (s *Sidechain) InitChain() error {
-	genesisBlock, err := s.Chain.GetGenesis()
-	if err != nil {
-		return err
-	}
-
+	return nil
 }
 
 func (s *Sidechain) StartBlock(block *types.CompactBlock) error {
@@ -49,50 +46,54 @@ func (s *Sidechain) StartBlock(block *types.CompactBlock) error {
 func (s *Sidechain) EndBlock(block *types.CompactBlock) error {
 	height := block.Height
 	n := common.BlockNum(s.N)
-	if height % n != 0 {
+
+	// Send blocks to Layer1 Block Height:  0~(n-1), n~(2n-1), 2n~(3n-1), ...
+	if height%n != n-1 {
 		return nil
 	}
-	blocks, err := s.Chain.GetRangeBlocks(height - n + 1, height)
+	blocks, err := s.Chain.GetRangeBlocks(height+1-n, height)
 	if err != nil {
 		return err
 	}
 
-	evidences := make([]poa.Evidence, 0)
+	evidences := make([]sidechain.Evidence, 0)
 	for _, b := range blocks {
 		evidences = append(evidences, blockToEvidence(b))
 	}
 
-	return s.sendToLayer1(evidences)
+	if s.Land.TripodsMap["Poa"].(*poa.Poa).AmILeader(block.Height) {
+		return s.sendToLayer1(evidences)
+	}
+	return nil
 }
 
 func (s *Sidechain) FinalizeBlock(block *types.CompactBlock) error {
 	return nil
 }
 
-func (s *Sidechain) sendToLayer1(e []poa.Evidence) error {
-	builder := poa.NewEvidencesBuilder()
+func (s *Sidechain) sendToLayer1(e []sidechain.Evidence) error {
+	builder := sidechain.NewEvidencesBuilder()
 	es := builder.Set(e).Build()
 	esBytes := es.AsSlice()
 
 }
 
-func blockToEvidence(block *types.CompactBlock) poa.Evidence {
-	builder := poa.NewEvidenceBuilder()
-
-	blockHash := *poa.HashFromSliceUnchecked(block.Hash.Bytes())
+func blockToEvidence(block *types.CompactBlock) sidechain.Evidence {
+	builder := sidechain.NewEvidenceBuilder()
+	// block hash
+	blockHash := *sidechain.HashFromSliceUnchecked(block.Hash.Bytes())
 	builder.BlockHash(blockHash)
-
+	// block height
 	heightBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint32(heightBytes, uint32(block.Height))
-	height := *poa.Uint64FromSliceUnchecked(heightBytes)
+	height := *sidechain.Uint64FromSliceUnchecked(heightBytes)
 	builder.Height(height)
-
-	stateRoot := *poa.HashFromSliceUnchecked(block.StateRoot.Bytes())
+	// state root
+	stateRoot := *sidechain.HashFromSliceUnchecked(block.StateRoot.Bytes())
 	builder.StateRoot(stateRoot)
-
-	txnRoot := *poa.HashFromSliceUnchecked(block.TxnRoot.Bytes())
+	// txn root
+	txnRoot := *sidechain.HashFromSliceUnchecked(block.TxnRoot.Bytes())
 	builder.TxnRoot(txnRoot)
-
 
 	return builder.Build()
 }

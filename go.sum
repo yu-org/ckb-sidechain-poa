@@ -125,6 +125,8 @@ github.com/yu-org/yu v0.0.0-20220419030745-29bf982e7bcb h1:ne5vAeINZKX2XkvVZ2rxi
 github.com/yu-org/yu v0.0.0-20220419030745-29bf982e7bcb/go.mod h1:LB4qE3zDHlCZWz0z5fppIdUsuL5kj3ObEVDCJGieozc=
 github.com/yu-org/yu v0.0.0-20220419082329-91016880cc6a h1:kSLDPdgq1gtiyeV+rHp+mFDlmvjFdLXL0kel/Lcri8w=
 github.com/yu-org/yu v0.0.0-20220419082329-91016880cc6a/go.mod h1:LB4qE3zDHlCZWz0z5fppIdUsuL5kj3ObEVDCJGieozc=
+github.com/yu-org/yu v0.0.0-20220420032056-a8e24daa142a h1:jM7t/mUw84WE0PQlVMbpwcHoZm76ZmEjvVPjn4kz/XM=
+github.com/yu-org/yu v0.0.0-20220420032056-a8e24daa142a/go.mod h1:LB4qE3zDHlCZWz0z5fppIdUsuL5kj3ObEVDCJGieozc=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
