@@ -15,14 +15,18 @@ import (
 	"github.com/yu-org/yu/common"
 	"github.com/yu-org/yu/core/keypair"
 	"github.com/yu-org/yu/core/tripod"
+	"github.com/yu-org/yu/core/tripod/dev"
 	"github.com/yu-org/yu/core/types"
 )
 
 type Sidechain struct {
 	*tripod.TripodHeader
-	ckbCli             rpc.Client
-	ckbScript          *ckbtypes.Script
-	changeSer          []byte
+
+	ckbCli        rpc.Client
+	ckbScript     *ckbtypes.Script
+	changeSer     []byte
+	lastCkbTxHash []byte
+
 	validators         []keypair.PubKey
 	otherValidatorsIps []peer.ID
 	myPrivKey          *secp256k1.Secp256k1Key
@@ -33,7 +37,13 @@ type Sidechain struct {
 
 const MultiSigCode = 99
 
-func NewSidechain(ckbUrl string, validators []keypair.PubKey, myPrivKey keypair.PrivKey, otherValidatorsIps []string) *Sidechain {
+func NewSidechain(
+	ckbUrl string,
+	validators []keypair.PubKey,
+	myPrivKey keypair.PrivKey,
+	otherValidatorsIps []string,
+	lastCkbTxHash []byte,
+) *Sidechain {
 	ckbCli, err := rpc.Dial(ckbUrl)
 	if err != nil {
 		panic(err)
@@ -66,6 +76,7 @@ func NewSidechain(ckbUrl string, validators []keypair.PubKey, myPrivKey keypair.
 		changeSer:          changeSer,
 		validators:         validators,
 		myPrivKey:          ckbPrivKey,
+		lastCkbTxHash:      lastCkbTxHash,
 		otherValidatorsIps: validatorsIps,
 		N:                  10,
 	}
@@ -84,8 +95,11 @@ func (s *Sidechain) VerifyBlock(block *types.CompactBlock) bool {
 }
 
 func (s *Sidechain) InitChain() error {
-	// todo: set p2p handler
-	// todo: set ckb first input txHash
+	s.P2pNetwork.SetHandlers(map[int]dev.P2pHandler{
+		MultiSigCode: func(msg []byte) ([]byte, error) {
+			return s.myPrivKey.Sign(msg)
+		},
+	})
 	return nil
 }
 
@@ -139,9 +153,14 @@ func (s *Sidechain) sendToLayer1(blocks []*types.CompactBlock) error {
 	})
 	tx.OutputsData = [][]byte{esBytes}
 
-	lastTxHash, err := s.State.Get(s, (s.currentTurn - 1).Bytes())
-	if err != nil {
-		return err
+	var lastTxHash []byte
+	if s.currentTurn == 0 {
+		lastTxHash = s.lastCkbTxHash
+	} else {
+		lastTxHash, err = s.State.Get(s, (s.currentTurn - 1).Bytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	group, witness, err := transaction.AddInputsForTransaction(tx, []*ckbtypes.CellInput{
@@ -161,7 +180,6 @@ func (s *Sidechain) sendToLayer1(blocks []*types.CompactBlock) error {
 	if err != nil {
 		return err
 	}
-
 	sigs, err := s.getSigsFromValidators(msg)
 	if err != nil {
 		return err
@@ -208,14 +226,12 @@ func (s *Sidechain) getSigsFromValidators(msg []byte) ([][]byte, error) {
 	}
 
 	var sigs = [][]byte{sig}
-
 	for _, ip := range s.otherValidatorsIps {
-		respSig, err := s.P2pNetwork.RequestPeer(ip, MultiSigCode, s.currentTurn.Bytes())
+		respSig, err := s.P2pNetwork.RequestPeer(ip, MultiSigCode, msg)
 		if err != nil {
 			return nil, err
 		}
 		sigs = append(sigs, respSig)
 	}
-
 	return sigs, nil
 }
