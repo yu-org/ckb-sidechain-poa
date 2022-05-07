@@ -105,6 +105,7 @@ func (s *Sidechain) InitChain() error {
 
 func (s *Sidechain) StartBlock(block *types.CompactBlock) error {
 	s.currentTurn = block.Height / common.BlockNum(s.N)
+	// todo: When last block was sent to Layer1, should check if the block is on chain.
 	return nil
 }
 
