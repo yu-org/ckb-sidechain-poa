@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/yu-org/yu/apps/asset"
 	"github.com/yu-org/yu/apps/poa"
+	"github.com/yu-org/yu/common"
 	"github.com/yu-org/yu/core/keypair"
 	"github.com/yu-org/yu/core/startup"
 	"os"
@@ -16,10 +17,12 @@ func main() {
 		panic(err)
 	}
 
+	lastCkbTxHashHex := os.Args[2]
+
 	pubkey, privkey, validators := poa.InitDefaultKeypairs(idx)
 
 	ckbUrl := "http://127.0.0.1:8114"
-	lastCkbTxHash := []byte{}
+	lastCkbTxHash := common.FromHex(lastCkbTxHashHex)
 
 	var pubkeys []keypair.PubKey
 	var otherIps []string
