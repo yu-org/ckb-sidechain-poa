@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/libp2p/go-libp2p-core v0.8.0
 	github.com/nervosnetwork/ckb-sdk-go v1.0.1-0.20220413020229-ed5229a077d2
-	github.com/yu-org/yu v0.0.0-20220424015125-fa96a502c852
+	github.com/yu-org/yu v0.0.0-20220518023855-40922fe1470d
 )
 
 require (
